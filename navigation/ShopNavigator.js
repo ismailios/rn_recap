@@ -1,12 +1,13 @@
 import React from "react";
 import { createStackNavigator } from "react-navigation-stack";
-import { createAppContainer } from "react-navigation";
+import { createAppContainer, createSwitchNavigator } from "react-navigation";
 import { createDrawerNavigator } from "react-navigation-drawer";
 
 import ProductsOverViewScreen from "../screens/shop/ProductsOverViewScreen";
 import ProductDetailsScreen from "../screens/shop/ProductDetailsScreen";
 import UserProductsScreen from "../screens/user/UserProductsScreen";
 import EditProductScreen from "../screens/user/EditProductScreen";
+import AuthScreen from "../screens/user/AuthScreen";
 import CartScreen from "../screens/shop/CartScreen";
 import OrderScreen from "../screens/shop/OrderScreen";
 
@@ -86,4 +87,18 @@ const ShopNavigator = createDrawerNavigator(
   }
 );
 
-export default createAppContainer(ShopNavigator);
+const AuthNavigator = createStackNavigator(
+  {
+    Auth: AuthScreen,
+  },
+  {
+    defaultNavigationOptions: navigationOptions,
+  }
+);
+
+const Auth = createSwitchNavigator({
+  Auth: AuthNavigator,
+  ShopNavigator: ShopNavigator,
+});
+
+export default createAppContainer(Auth);
