@@ -1,93 +1,87 @@
-import React from "react";
+import React from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Image,
-  Button,
-  Platform,
-  Dimensions,
-} from "react-native";
-import {
-  TouchableNativeFeedback,
+  StyleSheet,
   TouchableOpacity,
-} from "react-native-gesture-handler";
-import Colors from "../../constants/Colors";
+  TouchableNativeFeedback,
+  Platform
+} from 'react-native';
 
-const ProductItem = (props) => {
+import Card from '../UI/Card';
+
+const ProductItem = props => {
   let TouchableCmp = TouchableOpacity;
 
-  if ((Platform.OS = "android" && Platform.Version > 21)) {
+  if (Platform.OS === 'android' && Platform.Version >= 21) {
     TouchableCmp = TouchableNativeFeedback;
   }
 
   return (
-    <View style={styles.card}>
-      <TouchableCmp
-        style={styles.wrapperContent}
-        onPress={() => props.onSelect()}
-      >
-        <View style={styles.imageWrapper}>
-          <Image
-            resizeMode={"cover"}
-            source={{ uri: props.image }}
-            style={styles.imageProduct}
-          />
-        </View>
-        <View style={styles.productDetails}>
-          <Text style={styles.titleProduct}>{props.title}</Text>
-          <Text style={styles.priceProduct}>${props.price.toFixed(2)} </Text>
-        </View>
-      </TouchableCmp>
-      <View style={styles.buttonCantainer}>{props.children}</View>
-    </View>
+    <Card style={styles.product}>
+      <View style={styles.touchable}>
+        <TouchableCmp onPress={props.onSelect} useForeground>
+          <View>
+            <View style={styles.imageContainer}>
+              <Image style={styles.image} source={{ uri: props.image }} />
+            </View>
+            <View style={styles.details}>
+              <Text style={styles.title}>{props.title}</Text>
+              <Text style={styles.price}>${props.price.toFixed(2)}</Text>
+            </View>
+            <View style={styles.actions}>
+              {props.children}
+            </View>
+          </View>
+        </TouchableCmp>
+      </View>
+    </Card>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    margin: 15,
-    borderRadius: 20,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.27,
-    shadowRadius: 4.65,
-    elevation: 6,
-  },
-  imageWrapper: {
-    width: "100%",
-    borderBottomColor: "#e3e3e3",
-    borderBottomWidth: 1,
-  },
-  productDetails: { padding: 20, alignItems: "center" },
-  imageProduct: {
-    width: "100%",
+  product: {
     height: 300,
-    borderTopRightRadius: 20,
-    borderTopLeftRadius: 20,
+    margin: 20
   },
-  titleProduct: {
+  touchable: {
+    borderRadius: 10,
+    overflow: 'hidden'
+  },
+  imageContainer: {
+    width: '100%',
+    height: '60%',
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    overflow: 'hidden'
+  },
+  image: {
+    width: '100%',
+    height: '100%'
+  },
+  details: {
+    alignItems: 'center',
+    height: '17%',
+    padding: 10
+  },
+  title: {
+    fontFamily: 'open-sans-bold',
     fontSize: 18,
-    marginVertical: 4,
+    marginVertical: 2
   },
-  priceProduct: {
-    color: "#888",
-    fontFamily: "OpenSans-ExtraBold",
+  price: {
+    fontFamily: 'open-sans',
+    fontSize: 14,
+    color: '#888'
   },
-  buttonCantainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    maxWidth: "80%",
-    marginRight: "auto",
-    marginLeft: "auto",
-    marginBottom: 20,
-    position: "relative",
-  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    height: '23%',
+    paddingHorizontal: 20
+  }
 });
 
 export default ProductItem;

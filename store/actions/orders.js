@@ -1,76 +1,75 @@
-import Order from "../../models/Order";
+import Order from "../../models/order";
 
 export const ADD_ORDER = "ADD_ORDER";
 export const SET_ORDERS = "SET_ORDERS";
 
-export const setOrders = () => {
-  return async (dispatch) => {
+export const fetchOrders = () => {
+  return async (dispatch, getState) => {
+    const token = getState().auth.token;
+    const userId = getState().auth.userId;
     try {
       const response = await fetch(
-        "https://recap-shop.firebaseio.com/orders/u1.json"
+        `https://recap-shop.firebaseio.com/orders/${userId}.json?auth=${token}`
       );
 
-      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error("Something went wrong!");
+      }
 
-      fetchedOrder = [];
+      const resData = await response.json();
+      const loadedOrders = [];
 
       for (const key in resData) {
-        fetchedOrder.push(
+        loadedOrders.push(
           new Order(
             key,
-            resData[key].items,
+            resData[key].cartItems,
             resData[key].totalAmount,
             new Date(resData[key].date)
           )
         );
       }
-    } catch (error) {
-      throw error;
+      dispatch({ type: SET_ORDERS, orders: loadedOrders });
+    } catch (err) {
+      throw err;
     }
-
-    dispatch({
-      type: SET_ORDERS,
-      orders: fetchedOrder,
-    });
   };
 };
 
-export const addOrder = (items, totalAmount) => {
-  return async (dispatch) => {
-    try {
-      const date = new Date();
-      const response = await fetch(
-        "https://recap-shop.firebaseio.com/orders/u1.json",
-        {
-          method: "POST",
-          headers: {
-            "Content-type": "application/json",
-          },
-          body: JSON.stringify({
-            items,
-            totalAmount,
-            date: date.toISOString(),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("smoething wrong !!!");
-      }
-
-      const resData = await response.json();
-
-      dispatch({
-        type: ADD_ORDER,
-        orderData: {
-          id: resData.name,
-          items: items,
-          totalAmount: totalAmount,
-          date: date,
+export const addOrder = (cartItems, totalAmount) => {
+  return async (dispatch, getState) => {
+    const token = getState().auth.token;
+    const userId = getState().auth.userId;
+    const date = new Date();
+    const response = await fetch(
+      `https://recap-shop.firebaseio.com/orders/${userId}.json?auth=${token}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      });
-    } catch (error) {
-      throw error;
+        body: JSON.stringify({
+          cartItems,
+          totalAmount,
+          date: date.toISOString(),
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Something went wrong!");
     }
+
+    const resData = await response.json();
+
+    dispatch({
+      type: ADD_ORDER,
+      orderData: {
+        id: resData.name,
+        items: cartItems,
+        amount: totalAmount,
+        date: date,
+      },
+    });
   };
 };

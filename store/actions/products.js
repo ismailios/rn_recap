@@ -1,34 +1,34 @@
-import Axios from "axios";
+import Product from "../../models/product";
 
 export const DELETE_PRODUCT = "DELETE_PRODUCT";
 export const CREATE_PRODUCT = "CREATE_PRODUCT";
-export const EDIT_PRODUCT = "EDIT_PRODUCT";
+export const UPDATE_PRODUCT = "UPDATE_PRODUCT";
 export const SET_PRODUCTS = "SET_PRODUCTS";
-import axios from "axios";
-import Product from "../../models/product";
 
-export const setProducts = () => {
-  return async (dispatch) => {
+export const fetchProducts = () => {
+  return async (dispatch, getState) => {
+    const token = getState().auth.token;
+    const userId = getState().auth.userId;
+    // any async code you want!
     try {
-      const response = await axios.get(
-        "https://recap-shop.firebaseio.com/products.json"
+      const response = await fetch(
+        `https://recap-shop.firebaseio.com/products.json?auth=${token}`
       );
 
-      // if (!response.ok) {
-      //   throw new Error("somthing wrong !!");
-      // }
+      if (!response.ok) {
+        throw new Error("Something went wrong!");
+      }
 
-      const resData = await response.data;
-
-      let products = [];
+      const resData = await response.json();
+      const loadedProducts = [];
 
       for (const key in resData) {
-        products.push(
+        loadedProducts.push(
           new Product(
             key,
-            "u1",
+            resData[key].ownerId,
             resData[key].title,
-            resData[key].image,
+            resData[key].imageUrl,
             resData[key].description,
             resData[key].price
           )
@@ -37,110 +37,103 @@ export const setProducts = () => {
 
       dispatch({
         type: SET_PRODUCTS,
-        products: products,
+        products: loadedProducts,
+        userProducts: loadedProducts.filter(
+          (userProd) => userProd.ownerId === userId
+        ),
       });
-    } catch (error) {
-      throw error;
+    } catch (err) {
+      // send to custom analytics server
+      throw err;
     }
   };
 };
 
 export const deleteProduct = (productId) => {
-  return (dispatch) => {
-    try {
-      const response = fetch(
-        `https://recap-shop.firebaseio.com/products/${productId}.json`,
-        {
-          method: "DELETE",
-        }
-      );
+  return async (dispatch, getState) => {
+    const token = getState().auth.token;
+    const response = await fetch(
+      `https://recap-shop.firebaseio.com/products/${productId}.json?auth=${token}`,
+      {
+        method: "DELETE",
+      }
+    );
 
-      dispatch({
-        type: DELETE_PRODUCT,
-        productId: productId,
-      });
-    } catch (error) {
-      throw error;
+    if (!response.ok) {
+      throw new Error("Something went wrong!");
     }
+    dispatch({ type: DELETE_PRODUCT, pid: productId });
   };
 };
 
-export const addProduct = (title, price, description, image) => {
-  return async (dispatch) => {
-    try {
-      const response = await fetch(
-        "https://recap-shop.firebaseio.com/products.json",
-        {
-          method: "POST",
-          headers: {
-            "Content-type": "application/json",
-          },
-          body: JSON.stringify({
-            title,
-            price,
-            description,
-            image,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("something wrong !");
-      }
-
-      const resData = await response.json();
-
-      dispatch({
-        type: CREATE_PRODUCT,
-        productData: {
-          id: resData.name,
+export const createProduct = (title, description, imageUrl, price) => {
+  return async (dispatch, getState) => {
+    // any async code you want!
+    const token = getState().auth.token;
+    const userId = getState().auth.userId;
+    const response = await fetch(
+      `https://recap-shop.firebaseio.com/products.json?auth=${token}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           title,
+          description,
+          imageUrl,
           price,
-          description,
-          image,
-        },
-      });
-    } catch (error) {
-      throw error;
-    }
+          ownerId: userId,
+        }),
+      }
+    );
+
+    const resData = await response.json();
+
+    dispatch({
+      type: CREATE_PRODUCT,
+      productData: {
+        id: resData.name,
+        title,
+        description,
+        imageUrl,
+        price,
+        ownerId: userId,
+      },
+    });
   };
 };
 
-export const editProduct = (productId, title, description, image) => {
-  return async (dispatch) => {
-    try {
-      const response = await fetch(
-        `https://recap-shop.firebaseio.com/products/${productId}.json`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-type": "application/json",
-          },
-          body: JSON.stringify({
-            title,
-            description,
-            image,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("something wrong");
-      }
-
-      const resData = await response.json();
-
-      dispatch({
-        type: EDIT_PRODUCT,
-        productId: productId,
-        productData: {
+export const updateProduct = (id, title, description, imageUrl) => {
+  return async (dispatch, getState) => {
+    const token = getState().auth.token;
+    const response = await fetch(
+      `https://recap-shop.firebaseio.com/products/${id}.json?auth=${token}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           title,
           description,
-          image,
-        },
-      });
-    } catch (error) {
-      throw error;
+          imageUrl,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Something went wrong!");
     }
+
+    dispatch({
+      type: UPDATE_PRODUCT,
+      pid: id,
+      productData: {
+        title,
+        description,
+        imageUrl,
+      },
+    });
   };
 };

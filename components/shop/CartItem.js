@@ -1,52 +1,63 @@
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { View, StyleSheet, Text } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
-const CartItem = ({ data, onDelete, deletable }) => {
+const CartItem = (props) => {
   return (
-    <View style={styles.container}>
-      <View style={styles.info}>
-        <Text style={styles.quantity}>{data.quantity}</Text>
-        <Text style={styles.title}>{data.productTitle}</Text>
+    <View style={styles.cartItem}>
+      <View style={styles.itemData}>
+        <Text style={styles.quantity}>{props.quantity} </Text>
+        <Text style={styles.mainText}>{props.title}</Text>
       </View>
-
-      <View>
-        <Text style={styles.price}>${data.productPrice}</Text>
+      <View style={styles.itemData}>
+        <Text style={styles.mainText}>${props.amount.toFixed(2)}</Text>
+        {props.deletable && (
+          <TouchableOpacity
+            onPress={props.onRemove}
+            style={styles.deleteButton}
+          >
+            <Ionicons
+              name={Platform.OS === "android" ? "md-trash" : "ios-trash"}
+              size={23}
+              color="red"
+            />
+          </TouchableOpacity>
+        )}
       </View>
-      {deletable && (
-        <TouchableOpacity style={styles.delete} onPress={onDelete}>
-          <Ionicons name="ios-trash" size={24} color="red" />
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  info: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  container: {
-    margin: 15,
+  cartItem: {
+    padding: 15,
+    backgroundColor: "white",
     flexDirection: "row",
     justifyContent: "space-between",
+    borderRadius: 10,
+  },
+  itemData: {
+    flexDirection: "row",
     alignItems: "center",
   },
   quantity: {
-    fontFamily: "OpenSans-ExtraBold",
-    marginRight: 3,
-    fontSize: 15,
-  },
-  title: {
+    fontFamily: "open-sans",
+    color: "#888",
     fontSize: 16,
   },
-  price: {
-    fontFamily: "OpenSans-ExtraBold",
+  mainText: {
+    fontFamily: "open-sans-bold",
     fontSize: 16,
   },
-  delete: {},
+  deleteButton: {
+    marginLeft: 20,
+  },
 });
 
 export default CartItem;

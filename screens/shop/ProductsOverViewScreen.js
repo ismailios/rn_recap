@@ -1,148 +1,151 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  StyleSheet,
-  SafeAreaView,
-  Button,
   View,
-  RefreshControl,
   Text,
+  FlatList,
+  Button,
+  Platform,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
-import { FlatList } from "react-native-gesture-handler";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { HeaderButtons, Item } from "react-navigation-header-buttons";
+
+import HeaderButton from "../../components/UI/HeaderButton";
 import ProductItem from "../../components/shop/ProductItem";
 import * as cartActions from "../../store/actions/cart";
+import * as productsActions from "../../store/actions/products";
+import Colors from "../../constants/Colors";
 
-import { HeaderButtons, Item } from "react-navigation-header-buttons";
-import CustomHeaderButton from "../../components/UI/CustomHeaderButton";
-import { Colors } from "react-native/Libraries/NewAppScreen";
-
-import * as productActions from "../../store/actions/products";
-import { useCallback } from "react";
-
-const ProductsOverViewScreen = (props) => {
-  const products = useSelector((state) => state.product.availableProduct);
-
+const ProductsOverviewScreen = (props) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
   const [error, setError] = useState();
-
+  const products = useSelector((state) => state.products.availableProducts);
   const dispatch = useDispatch();
 
-  const fetchProducts = useCallback(async () => {
-    setIsRefreshing(true);
+  const loadProducts = useCallback(async () => {
     setError(null);
+    setIsRefreshing(true);
     try {
-      await dispatch(productActions.setProducts());
-    } catch (error) {
-      setError(error);
+      await dispatch(productsActions.fetchProducts());
+    } catch (err) {
+      setError(err.message);
     }
     setIsRefreshing(false);
-  }, [dispatch, isLoading, setError]);
+  }, [dispatch, setIsLoading, setError]);
+
+  useEffect(() => {
+    const willFocusSub = props.navigation.addListener(
+      "willFocus",
+      loadProducts
+    );
+
+    return () => {
+      willFocusSub.remove();
+    };
+  }, [loadProducts]);
 
   useEffect(() => {
     setIsLoading(true);
-    fetchProducts().then(() => setIsLoading(false));
-  }, [dispatch]);
-
-  useEffect(() => {
-    const willFocus = props.navigation.addListener("willFocus", () => {
-      fetchProducts();
+    loadProducts().then(() => {
+      setIsLoading(false);
     });
-    return () => {
-      willFocus.remove();
-    };
-  }, [fetchProducts]);
+  }, [dispatch, loadProducts]);
 
-  const addCart = (product) => {
-    dispatch(cartActions.addToCart(product));
-  };
-
-  const selectHandler = (productId) => {
-    props.navigation.navigate("ProductDetails", {
-      productId: productId,
+  const selectItemHandler = (id, title) => {
+    props.navigation.navigate("ProductDetail", {
+      productId: id,
+      productTitle: title,
     });
   };
+
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text>An error occurred!</Text>
+        <Button
+          title="Try again"
+          onPress={loadProducts}
+          color={Colors.primary}
+        />
+      </View>
+    );
+  }
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color="red" />
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
   if (!isLoading && products.length === 0) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text> No product Found !!</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text> error occured !!</Text>
-        <Button
-          title="Try Again !!"
-          color={Colors.primary}
-          onPress={fetchProducts}
-        />
+      <View style={styles.centered}>
+        <Text>No products found. Maybe start adding some!</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <FlatList
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={fetchProducts} />
-        }
-        data={products}
-        renderItem={(itemData) => (
-          <ProductItem
-            title={itemData.item.title}
-            price={itemData.item.price}
-            image={itemData.item.imageUrl}
-            onSelect={() => selectHandler(itemData.item.id)}
-          >
-            <Button
-              color={Colors.primary}
-              title="Go to Details"
-              onPress={() => selectHandler(itemData.item.id)}
-            />
-            <Button
-              color={Colors.accent}
-              title="Add To Cart"
-              onPress={() => addCart(itemData.item)}
-            />
-          </ProductItem>
-        )}
-      />
-    </SafeAreaView>
+    <FlatList
+      onRefresh={loadProducts}
+      refreshing={isRefreshing}
+      data={products}
+      keyExtractor={(item) => item.id}
+      renderItem={(itemData) => (
+        <ProductItem
+          image={itemData.item.imageUrl}
+          title={itemData.item.title}
+          price={itemData.item.price}
+          onSelect={() => {
+            selectItemHandler(itemData.item.id, itemData.item.title);
+          }}
+        >
+          <Button
+            color={Colors.primary}
+            title="View Details"
+            onPress={() => {
+              selectItemHandler(itemData.item.id, itemData.item.title);
+            }}
+          />
+          <Button
+            color={Colors.primary}
+            title="To Cart"
+            onPress={() => {
+              dispatch(cartActions.addToCart(itemData.item));
+            }}
+          />
+        </ProductItem>
+      )}
+    />
   );
 };
 
-ProductsOverViewScreen.navigationOptions = (navData) => {
+ProductsOverviewScreen.navigationOptions = (navData) => {
   return {
-    headerTitle: "Products OverView ",
-    headerRight: () => (
-      <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
+    headerTitle: "All Products",
+    headerLeft: () => (
+      <HeaderButtons HeaderButtonComponent={HeaderButton}>
         <Item
-          iconName="ios-cart"
-          color="white"
-          onPress={() => navData.navigation.navigate("Cart")}
+          title="Menu"
+          iconName={Platform.OS === "android" ? "md-menu" : "ios-menu"}
+          onPress={() => {
+            navData.navigation.toggleDrawer();
+          }}
         />
       </HeaderButtons>
     ),
-    headerLeft: () => (
-      <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
+    headerRight: () => (
+      <HeaderButtons HeaderButtonComponent={HeaderButton}>
         <Item
-          iconName="ios-menu"
-          color="white"
-          onPress={() => navData.navigation.toggleDrawer()}
+          title="Cart"
+          iconName={Platform.OS === "android" ? "md-cart" : "ios-cart"}
+          onPress={() => {
+            navData.navigation.navigate("Cart");
+          }}
         />
       </HeaderButtons>
     ),
@@ -150,12 +153,7 @@ ProductsOverViewScreen.navigationOptions = (navData) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-
-    width: "100%",
-  },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
 
-export default ProductsOverViewScreen;
+export default ProductsOverviewScreen;

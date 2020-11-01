@@ -1,47 +1,53 @@
 import React, { useState } from "react";
 import { createStore, combineReducers, applyMiddleware } from "redux";
 import { Provider } from "react-redux";
-import { composeWithDevTools } from "redux-devtools-extension";
+import { AppLoading } from "expo";
+import * as Font from "expo-font";
 import ReduxThunk from "redux-thunk";
+
+import { composeWithDevTools } from "redux-devtools-extension";
 
 import productsReducer from "./store/reducers/products";
 import cartReducer from "./store/reducers/cart";
-import orderReducer from "./store/reducers/orders";
+import ordersReducer from "./store/reducers/orders";
+import authReducer from "./store/reducers/auth";
+import NavigationContainer from "./navigation/NavigationContainer";
 
-import ShopNavigator from "./navigation/ShopNavigator";
-
-import * as Font from "expo-font";
-import { AppLoading } from "expo";
-
-const fetchFont = () => {
-  return Font.loadAsync({
-    "OpenSans-Bold": require("./assets/fonts/OpenSans-Bold.ttf"),
-    "OpenSans-ExtraBold": require("./assets/fonts/OpenSans-ExtraBold.ttf"),
-  });
-};
-
-const rootReducers = combineReducers({
-  product: productsReducer,
+const rootReducer = combineReducers({
+  products: productsReducer,
   cart: cartReducer,
-  orders: orderReducer,
+  orders: ordersReducer,
+  auth: authReducer,
 });
 
 const store = createStore(
-  rootReducers,
+  rootReducer,
   composeWithDevTools(applyMiddleware(ReduxThunk))
 );
 
-export default function App() {
-  const [loaded, setLoaded] = useState(false);
+const fetchFonts = () => {
+  return Font.loadAsync({
+    "open-sans": require("./assets/fonts/OpenSans-Regular.ttf"),
+    "open-sans-bold": require("./assets/fonts/OpenSans-Bold.ttf"),
+  });
+};
 
-  if (!loaded) {
+export default function App() {
+  const [fontLoaded, setFontLoaded] = useState(false);
+
+  if (!fontLoaded) {
     return (
-      <AppLoading startAsync={fetchFont} onFinish={() => setLoaded(true)} />
+      <AppLoading
+        startAsync={fetchFonts}
+        onFinish={() => {
+          setFontLoaded(true);
+        }}
+      />
     );
   }
   return (
     <Provider store={store}>
-      <ShopNavigator />
+      <NavigationContainer />
     </Provider>
   );
 }

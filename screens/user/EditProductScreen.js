@@ -1,20 +1,20 @@
-import React, { useEffect, useCallback, useReducer, useState } from "react";
+import React, { useState, useEffect, useCallback, useReducer } from "react";
 import {
   View,
   ScrollView,
   StyleSheet,
   Platform,
   Alert,
-  Text,
   KeyboardAvoidingView,
   ActivityIndicator,
 } from "react-native";
 import { HeaderButtons, Item } from "react-navigation-header-buttons";
 import { useSelector, useDispatch } from "react-redux";
 
-import CustomHeaderButton from "../../components/UI/CustomHeaderButton";
+import HeaderButton from "../../components/UI/HeaderButton";
 import * as productsActions from "../../store/actions/products";
 import Input from "../../components/UI/Input";
+import Colors from "../../constants/Colors";
 
 const FORM_INPUT_UPDATE = "FORM_INPUT_UPDATE";
 
@@ -42,14 +42,13 @@ const formReducer = (state, action) => {
 };
 
 const EditProductScreen = (props) => {
-  const prodId = props.navigation.getParam("productId");
-  const editedProduct = useSelector((state) =>
-    state.product.userProducts.find((prod) => prod.id === prodId)
-  );
-
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState();
 
+  const prodId = props.navigation.getParam("productId");
+  const editedProduct = useSelector((state) =>
+    state.products.userProducts.find((prod) => prod.id === prodId)
+  );
   const dispatch = useDispatch();
 
   const [formState, dispatchFormState] = useReducer(formReducer, {
@@ -68,18 +67,25 @@ const EditProductScreen = (props) => {
     formIsValid: editedProduct ? true : false,
   });
 
+  useEffect(() => {
+    if (error) {
+      Alert.alert("An error occurred!", error, [{ text: "Okay" }]);
+    }
+  }, [error]);
+
   const submitHandler = useCallback(async () => {
     if (!formState.formIsValid) {
-      console.warn("Please check the errors in the form.");
+      Alert.alert("Wrong input!", "Please check the errors in the form.", [
+        { text: "Okay" },
+      ]);
       return;
     }
     setError(null);
     setIsLoading(true);
-
     try {
       if (editedProduct) {
         await dispatch(
-          productsActions.editProduct(
+          productsActions.updateProduct(
             prodId,
             formState.inputValues.title,
             formState.inputValues.description,
@@ -88,18 +94,17 @@ const EditProductScreen = (props) => {
         );
       } else {
         await dispatch(
-          productsActions.addProduct(
+          productsActions.createProduct(
             formState.inputValues.title,
-            +formState.inputValues.price,
             formState.inputValues.description,
-            formState.inputValues.imageUrl
+            formState.inputValues.imageUrl,
+            +formState.inputValues.price
           )
         );
       }
-
       props.navigation.goBack();
-    } catch (error) {
-      setError(error.message);
+    } catch (err) {
+      setError(err.message);
     }
 
     setIsLoading(false);
@@ -121,13 +126,14 @@ const EditProductScreen = (props) => {
     [dispatchFormState]
   );
 
-  if (error) {
+  if (isLoading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text> error occured !!</Text>
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -200,7 +206,7 @@ EditProductScreen.navigationOptions = (navData) => {
       ? "Edit Product"
       : "Add Product",
     headerRight: () => (
-      <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
+      <HeaderButtons HeaderButtonComponent={HeaderButton}>
         <Item
           title="Save"
           iconName={
@@ -216,6 +222,11 @@ EditProductScreen.navigationOptions = (navData) => {
 const styles = StyleSheet.create({
   form: {
     margin: 20,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 
